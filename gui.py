@@ -311,6 +311,13 @@ def render_dashboard():
 # ==========================================
 # TOOLS PAGE (UNIQUE KEYS FIXED)
 # ==========================================
+
+# ==========================================
+# TOOLS PAGE (UNIQUE KEYS FIXED)
+# ==========================================
+import shutil  # Dosya sıkıştırma için gerekli
+
+
 def render_tools():
     st.title("🛠️ Computational Utilities")
 
@@ -319,16 +326,26 @@ def render_tools():
     # --- 1. CONVERTER ---
     with tab1:
         st.markdown("#### `proj.out` → `.pdos` Converter")
+        st.info("Quantum ESPRESSO `projwfc.x` çıktısını QEPlotter formatına dönüştürür.")
+
         f = st.file_uploader("Upload proj.out", key="t_p_uploader")
+
         if f:
             p = save_file(f)
-            out_d = os.path.join(st.session_state.temp_dir, "converted")
+            # Çıktı klasörü
+            out_d = os.path.join(st.session_state.temp_dir, "converted_pdos")
 
-            c1, c2 = st.columns(2)
-            if c1.button("Convert (Standard)", key="btn_conv_std"):
+            col1, col2 = st.columns(2)
+
+            # STANDARD CONVERT
+            if col1.button("Convert (Standard)", key="btn_conv_std", use_container_width=True):
                 run_tool(qep5.convert_consistent, p, outdir=out_d)
-            if c2.button("Convert (SOC Mode)", key="btn_conv_soc"):
+                create_download_button(out_d, "converted_pdos.zip")
+
+            # SOC CONVERT
+            if col2.button("Convert (SOC Mode)", key="btn_conv_soc", use_container_width=True):
                 run_tool(qep5.convert_soc_proj_to_ml, p, outdir=out_d)
+                create_download_button(out_d, "soc_pdos.zip")
 
     # --- 2. GAP DETECTOR ---
     with tab2:
@@ -338,15 +355,35 @@ def render_tools():
         fk = c2.file_uploader("K-Path File", key="t_kg_uploader")
         fermi = st.number_input("Fermi Level", key="t_fermi_input")
 
-        if st.button("Analyze Gap", key="btn_analyze_gap") and fb and fk:
+        if st.button("Analyze Gap", key="btn_analyze_gap", type="primary") and fb and fk:
             run_tool(qep5.detect_band_gap, save_file(fb), save_file(fk), fermi)
 
     # --- 3. BILAYER ---
     with tab3:
         st.markdown("#### Structure Analyzer")
         fs = st.file_uploader("Input/Output File", key="t_s_uploader")
-        if st.button("Analyze Structure", key="btn_analyze_struc") and fs:
+        if st.button("Analyze Structure", key="btn_analyze_struc", type="primary") and fs:
             run_tool(qep5.analyse_file, save_file(fs))
+
+
+def create_download_button(folder_path, zip_name):
+    """Klasörü zipler ve indirme butonu oluşturur"""
+    if os.path.exists(folder_path):
+        # Klasörü zip yap
+        shutil.make_archive(folder_path, 'zip', folder_path)
+        zip_file = folder_path + ".zip"
+
+        # Butonu göster
+        with open(zip_file, "rb") as f:
+            st.download_button(
+                label="⬇️ Download Result (ZIP)",
+                data=f,
+                file_name=zip_name,
+                mime="application/zip",
+                type="primary"
+            )
+    else:
+        st.warning("Çıktı klasörü oluşturulamadı. İşlem başarısız olmuş olabilir.")
 
 
 def run_tool(func, *args, **kwargs):
@@ -355,9 +392,11 @@ def run_tool(func, *args, **kwargs):
         with redirect_stdout(log):
             func(*args, **kwargs)
         st.success("Execution Complete")
-        st.code(log.getvalue())
+        with st.expander("View Logs", expanded=True):
+            st.code(log.getvalue())
     except Exception as e:
         st.error(f"Error: {e}")
+
 
 
 if __name__ == "__main__":
