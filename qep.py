@@ -652,7 +652,11 @@ def plot_band(
     ax1.set_xticks(tick_positions)
     ax1.set_xticklabels(tick_labels)
     ax1.set_xlabel('K-point Path')
-    ax1.set_ylabel('Energy (eV)')
+    
+    # Dynamic Y-label based on shift
+    ylabel = 'E - E_F (eV)' if (shift_fermi and fermi_level is not None) else 'Energy (eV)'
+    ax1.set_ylabel(ylabel)
+    
     if y_range:
         ax1.set_ylim(y_range)
     ax1.set_title(title)
@@ -666,24 +670,21 @@ def plot_band(
         ax2.set_xlabel('DOS')
         ax2.set_title("Total DOS")
         
-        # Share Y axis with band plot, so limits are handled automatically by sharey=True
-        # But we can enforce it if provided
+        # Share Y axis with band plot
         if y_range:
             ax2.set_ylim(y_range)
             
         # Draw Fermi Line
         if fermi_level is not None:
-             # Since it's side-by-side, Energy is Y-axis as well.
-             # E=0 line (Fermi) is horizontal.
-             y0 = 0.0 # because we shifted E_dos
-             label_f = f'Fermi = {fermi_level:.2f} eV' if not shift_fermi else f'Fermi = 0.00 eV' # Display logic
+             y0 = 0.0 if shift_fermi else fermi_level
+             # Show original Fermi value in legend, consistent with plot_dos
+             label_f = f'Fermi = {fermi_level:.2f} eV' 
              ax2.axhline(y0, color='r', ls='--', lw=1.2, label=label_f)
         else:
-             # Just a zero line if no fermi info (though typical QE plots shift to 0)
+             # Just a zero line if no fermi info
              ax2.axhline(0, color='gray', ls='--', lw=0.8)
 
         ax2.grid(True, ls='--', alpha=0.4)
-        pass # labels are hidden via setp below
         
         # Hide Y-axis labels on DOS plot since they are shared
         plt.setp(ax2.get_yticklabels(), visible=False)
@@ -704,23 +705,7 @@ def plot_band(
 
 
 
-    ylabel = 'E - E_F (eV)' if (shift_fermi and fermi_level is not None) else 'Energy (eV)'
-    plt.ylabel(ylabel)
-    if y_range:
-        plt.ylim(y_range)
-    plt.title(title)
-    plt.grid(True, ls='--', alpha=0.4)
-    if fermi_level is not None:
-        plt.legend()
-    plt.tight_layout()
-    if savefig:
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
-        out = os.path.join(save_dir, os.path.basename(savefig))
-        plt.savefig(out, dpi=dpi or plt.rcParams['figure.dpi'])
-        print(f"Saved figure to {out}")
 
-    plt.show()
 
 def plot_dos(dos_file, fermi_level=None, shift_fermi=False, y_range=None, x_range=None, dpi=None,
         save_dir="saved", savefig=None, vertical=False):
