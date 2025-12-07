@@ -2176,8 +2176,6 @@ def plot_from_file(
         save_dir="saved",
         savefig=None,
         spin=False,
-        savefig=None,
-        spin=False,
         sub_orb=False,
         vertical=False
 
