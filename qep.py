@@ -661,12 +661,35 @@ def plot_band(
 
     # --- TOTAL DOS PLOTTING ---
     if plot_total_dos:
-        ax2.plot(DOS, E_dos, 'k-', lw=1)
+        # Side-by-side means Energy on Y, DOS on X (Standard Vertical Layout)
+        ax2.plot(DOS, E_dos, 'k-', lw=1, label='Total DOS')
         ax2.set_xlabel('DOS')
+        ax2.set_title("Total DOS")
+        
+        # Share Y axis with band plot, so limits are handled automatically by sharey=True
+        # But we can enforce it if provided
         if y_range:
             ax2.set_ylim(y_range)
-        ax2.axvline(0, color='gray', ls='--', lw=0.8)
-        ax2.grid(True, ls='--', alpha=0.3)
+            
+        # Draw Fermi Line
+        if fermi_level is not None:
+             # Since it's side-by-side, Energy is Y-axis as well.
+             # E=0 line (Fermi) is horizontal.
+             y0 = 0.0 # because we shifted E_dos
+             label_f = f'Fermi = {fermi_level:.2f} eV' if not shift_fermi else f'Fermi = 0.00 eV' # Display logic
+             ax2.axhline(y0, color='r', ls='--', lw=1.2, label=label_f)
+        else:
+             # Just a zero line if no fermi info (though typical QE plots shift to 0)
+             ax2.axhline(0, color='gray', ls='--', lw=0.8)
+
+        ax2.grid(True, ls='--', alpha=0.4)
+        pass # labels are hidden via setp below
+        
+        # Hide Y-axis labels on DOS plot since they are shared
+        plt.setp(ax2.get_yticklabels(), visible=False)
+        
+        if fermi_level is not None:
+             ax2.legend(fontsize='small', loc='upper right')
 
     plt.tight_layout()
     if savefig:
