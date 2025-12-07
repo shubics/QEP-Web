@@ -356,7 +356,7 @@ def render_dashboard():
                         
                         buf = BytesIO()
                         fig.savefig(buf, format="png", dpi=args.get('dpi', 200), bbox_inches='tight')
-                        st.image(buf.getvalue(), caption="Plot Preview", width='match_parent')
+                        st.image(buf.getvalue(), caption="Plot Preview", use_column_width=True)
                         
                         st.download_button("💾 Download PNG", buf, "plot.png", "image/png")
                     else:
