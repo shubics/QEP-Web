@@ -353,10 +353,11 @@ def render_dashboard():
                         fig = plt.gcf()
                         # Adjust size explicitly
                         fig.set_size_inches(fig_width, fig_height)
-                        st.pyplot(fig, use_container_width=True)
                         
                         buf = BytesIO()
                         fig.savefig(buf, format="png", dpi=args.get('dpi', 200), bbox_inches='tight')
+                        st.image(buf.getvalue(), caption="Plot Preview", width='match_parent')
+                        
                         st.download_button("💾 Download PNG", buf, "plot.png", "image/png")
                     else:
                         st.warning("No plot generated.")
