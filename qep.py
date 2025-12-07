@@ -662,6 +662,11 @@ def plot_band(
     ax1.set_title(title)
     ax1.grid(True, ls='--', alpha=0.3)
     ax1.autoscale(enable=True, axis='x', tight=True)
+    
+    # Add Fermi line to Band Plot
+    if fermi_level is not None:
+        y0 = 0.0 if shift_fermi else fermi_level
+        ax1.axhline(y0, color='r', ls='--', lw=1.0)
 
     # --- TOTAL DOS PLOTTING ---
     if plot_total_dos:
