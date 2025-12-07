@@ -703,16 +703,7 @@ def plot_band(
 
 
 
-    for tx in tick_positions:
-        plt.axvline(tx, color='gray', ls='--', alpha=0.6)
 
-    if fermi_level is not None:
-        y0 = 0.0 if shift_fermi else fermi_level
-        plt.axhline(y0, color='r', ls='--', lw=1.2, label=f'Fermi = {fermi_level:.2f} eV')
-
-    plt.xticks(tick_positions, tick_labels)
-    plt.xlabel('K-point Path')
-    
     ylabel = 'E - E_F (eV)' if (shift_fermi and fermi_level is not None) else 'Energy (eV)'
     plt.ylabel(ylabel)
     if y_range:
