@@ -224,10 +224,28 @@ def render_dashboard():
                 c3, c4 = st.columns(2)
                 args['y_range'] = (c3.number_input("Y-Min", value=-3.0, min_value=-50.0, max_value=50.0), 
                                    c4.number_input("Y-Max", value=3.0, min_value=-50.0, max_value=50.0))
+            
+            if pt == 'dos':
+                 st.caption("Energy Axis Limits (X-Axis if horizontal)")
+                 c5, c6 = st.columns(2)
+                 use_x = st.checkbox("Set Custom Energy Limits", value=False)
+                 if use_x:
+                     args['x_range'] = (c5.number_input("Energy-Min", value=-10.0), 
+                                        c6.number_input("Energy-Max", value=10.0))
+                 else:
+                     args['x_range'] = None
 
             if pt in ["band", "fatbands"]:
                 args['spin'] = st.checkbox("Spin Polarized")
                 args['sub_orb'] = st.checkbox("Sub-Orbital Analysis")
+
+            if pt == "band":
+                 bm = st.selectbox("Band Mode", ["normal", "atomic", "orbital", "element_orbital", "most"])
+                 args['band_mode'] = bm
+                 if bm != 'normal':
+                     st.info("⚠️ For colored bands, you must upload Fatband/PDOS files above.")
+                 else:
+                     args['band_mode'] = 'normal'
 
         # --- C. PLOT MODE ---
         with st.expander("🎨 3. Visualization Settings", expanded=True):
