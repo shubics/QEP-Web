@@ -2183,7 +2183,6 @@ def plot_from_file(
     s_min=10,
     s_max=100,
     weight_threshold=0.01,
-    weight_threshold=0.01,
     y_range=None,
     x_range=None,
     fermi_level=None,
