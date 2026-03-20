@@ -97,16 +97,23 @@ def get_fermi_from_scf(scf_path):
     try:
         with open(scf_path, 'r', errors='ignore') as f:
             content = f.read()
-        # Search for "Fermi energy is" or "highest occupied level"
-        # Pattern: "the Fermi energy is     1.2345 eV"
-        m = re.search(r"the Fermi energy is\s+([-+]?\d*\.\d+)\s+eV", content)
+        
+        # Pattern 1: Metal - "the Fermi energy is     1.2345 eV"
+        m = re.search(r"the Fermi energy is\s+([-+]?\d*\.?\d+)\s+eV", content)
         if m:
             return float(m.group(1))
         
-        # Pattern: "highest occupied level      1.2345 eV"
-        m2 = re.search(r"highest occupied level\s+([-+]?\d*\.\d+)\s+eV", content)
+        # Pattern 2: Insulator/Semiconductor - "highest occupied, lowest unoccupied level (ev):    -4.7993   -3.6536"
+        m2 = re.search(r"highest occupied, lowest unoccupied level \(ev\):\s+([-+]?\d*\.?\d+)\s+([-+]?\d*\.?\d+)", content)
         if m2:
-            return float(m2.group(1))
+            homo = float(m2.group(1))
+            lumo = float(m2.group(2))
+            return 0.5 * (homo + lumo)  # mid-gap as Fermi estimate
+        
+        # Pattern 3: "highest occupied level (ev):     1.2345"
+        m3 = re.search(r"highest occupied level\s*\(ev\):\s+([-+]?\d*\.?\d+)", content)
+        if m3:
+            return float(m3.group(1))
             
         return None
     except Exception:
@@ -195,8 +202,10 @@ def render_dashboard():
                 f_kpath = st.file_uploader("K-Path File", type=["kpath", "in", "txt"], key="u_kpath", help="K_POINTS file in crystal_b format for symmetry labels")
                 paths['kpath_file'] = save_file(f_kpath)
 
-            if pt in ["fatbands", "pdos"]:
+            if pt in ["fatbands", "pdos", "band"]:
                 st.markdown("##### PDOS Projection Data")
+                if pt == "band":
+                    st.caption("Required for colored band modes (atomic, orbital, most, etc.)")
                 f_pdos = st.file_uploader("PDOS Files", accept_multiple_files=True, key="u_pdos", help="Select all outdir/*pdos* files produced by projwfc.x")
                 if f_pdos:
                     subdir = "pdos_data"
@@ -221,8 +230,19 @@ def render_dashboard():
         with tab_settings:
             # Auto-Fermi
             st.markdown("##### Fermi Energy")
+            f_scf = st.file_uploader("SCF Output (auto-detect Fermi)", type=["out", "txt"], key="u_scf", help="Upload scf.out to auto-read Fermi energy")
+            auto_fermi = 0.0
+            if f_scf:
+                scf_path = save_file(f_scf)
+                paths['scf_file'] = scf_path
+                detected = get_fermi_from_scf(scf_path)
+                if detected is not None:
+                    auto_fermi = detected
+                    st.success(f"Fermi energy detected: **{detected:.4f} eV**")
+                else:
+                    st.warning("Could not find Fermi energy in this file.")
             c_f1, c_f2 = st.columns(2)
-            args['fermi_level'] = c_f1.number_input("Fermi Level (eV)", value=0.0, format="%.4f", help="Absolute Fermi energy to shift plots relative to")
+            args['fermi_level'] = c_f1.number_input("Fermi Level (eV)", value=auto_fermi, format="%.4f", help="Absolute Fermi energy to shift plots relative to")
             args['shift_fermi'] = c_f2.checkbox("Shift E_F to 0", value=True, help="Shift energy axis so Fermi level is at 0")
 
             if pt in ["band", "fatbands", "pdos", "dos"]:
@@ -362,6 +382,9 @@ def render_dashboard():
 
             args['plot_total_dos'] = st.checkbox("Plot Total DOS side-by-side", value=False, help="Requires DOS file uploaded")
 
+            if pt in ["band", "fatbands"]:
+                args['show_band_gap'] = st.checkbox("📏 Show Band Gap Arrow", value=False, help="Detect and annotate the band gap (VBM → CBM) on the plot")
+
         # --- C. PLOT MODE & STYLE ---
         with tab_style:
             st.markdown("##### Plot Dimensions & Limits")
@@ -397,7 +420,7 @@ def render_dashboard():
                      args['x_range'] = None
 
             if pt in ['dos', 'pdos']:
-                args['vertical'] = st.checkbox("Vertical Orientation (Energy on Y)", value=False)
+                args['vertical'] = st.checkbox("Vertical Orientation (Energy on Y)", value=True)
             
             st.markdown("##### Colors & Visuals")
             args['cmap_name'] = st.selectbox("Colormap", ["tab10", "magma", "viridis", "jet", "coolwarm", "bwr"], help="Matplotlib colormap")
@@ -426,7 +449,6 @@ def render_dashboard():
     # ==========================================
     with col_preview:
         st.subheader("🚀 Execution")
-        st.info(".")
         
         if st.button("GENERATE VISUALIZATION", type="primary"):
             args.update(paths)
@@ -434,6 +456,12 @@ def render_dashboard():
             # Validation
             if pt == "band" and (not args.get('band_file') or not args.get('kpath_file')):
                 st.error("Missing Band or K-Path file.")
+                return
+            if pt == "band" and args.get('band_mode', 'normal') != 'normal' and not args.get('fatband_dir'):
+                st.error(f"Band mode '{args['band_mode']}' requires PDOS projection files. Upload them in the Data tab.")
+                return
+            if pt == "fatbands" and not args.get('fatband_dir'):
+                st.error("Fatband mode requires PDOS projection files. Upload them in the Data tab.")
                 return
 
             with st.spinner("Processing..."):
@@ -456,6 +484,12 @@ def render_dashboard():
                         st.download_button("💾 Download PNG", buf, "plot.png", "image/png")
                     else:
                         st.warning("No plot generated.")
+
+                    # Show backend logs
+                    log_text = log_io.getvalue()
+                    if log_text.strip():
+                        with st.expander("📋 Backend Logs", expanded=False):
+                            st.code(log_text)
 
                 except Exception as e:
                     st.error(f"Error: {e}")
