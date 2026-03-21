@@ -393,7 +393,8 @@ def render_dashboard():
                  if "heat" in fb_mode:
                      args['overlay_bands_in_heat'] = st.checkbox("Overlay Lines", True, help="Add line bands on top of heatmap")
 
-            if pt in [\"band\", \"fatbands\"]:\n                args['plot_total_dos'] = st.checkbox(\"Plot Total DOS side-by-side\", value=False, help=\"Requires DOS file uploaded\")
+            if pt in ["band", "fatbands"]:
+                args['plot_total_dos'] = st.checkbox("Plot Total DOS side-by-side", value=False, help="Requires DOS file uploaded")
 
             if pt in ["band", "fatbands"]:
                 args['show_band_gap'] = st.checkbox("📏 Show Band Gap Arrow", value=False, help="Detect and annotate the band gap (VBM → CBM) on the plot")
