@@ -13,6 +13,7 @@ from qeplotter.analysis.bandgap import _find_band_gap, _annotate_band_gap
 from qeplotter.plotting.style import (
     apply_axis_style,
     apply_legend,
+    colormap_colors,
     figure_size,
 )
 
@@ -26,6 +27,7 @@ def overlay_band_plot(
     figsize=None, plot_title=None, x_label=None, y_label=None,
     show_title=True, show_grid=True, show_legend=True,
     legend_location='best', legend_title=None,
+    cmap_name='tab10',
 ):
     """
     Overlay two band structures on the same plot.
@@ -36,6 +38,10 @@ def overlay_band_plot(
     if shift_fermi and fermi_level is not None:
         bands1 = bands1 - fermi_level
         bands2 = bands2 - fermi_level
+
+    palette = colormap_colors(cmap_name, 2)
+    color1 = palette[0] if color1 is None else color1
+    color2 = palette[1] if color2 is None else color2
 
     plt.figure(figsize=figure_size(figsize, (8, 6)), dpi=dpi)
 
@@ -80,12 +86,12 @@ def overlay_band_plot(
     # --- Save ---
     def sanitize(s):
         return re.sub(r'\W+', '_', s).strip('_')
-
+    
     if savefig:
         filename = savefig
     else:
         filename = f"BandStructure_{sanitize(label1)}_vs_{sanitize(label2)}.png"
-
+        
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     full_path = os.path.join(save_dir, filename)
@@ -106,7 +112,7 @@ def plot_band(
     fatband_dir=None,
     cmap_name='tab10',
     save_dir="saved",
-    savefig=None,
+    savefig=None, 
     spin=False,
     sub_orb=False,
     plot_total_dos=False,
@@ -144,7 +150,7 @@ def plot_band(
             raise ValueError(f"Unexpected DOS file format: {dos_file}")
         E_dos = dos_data[:, 0]
         DOS = dos_data[:, 1]
-
+        
         if shift_fermi and fermi_level is not None:
             E_dos = E_dos - fermi_level
 
@@ -165,12 +171,13 @@ def plot_band(
         ax2 = None
 
     if band_mode == 'normal' or band_mode is None:
+        line_color = colormap_colors(cmap_name, 1)[0]
         for band in band_energies:
             for (s,e) in seg_ranges:
                 if e > s:
-                    ax1.plot(x_dist[s:e+1], band[s:e+1], 'k-', lw=1)
+                    ax1.plot(x_dist[s:e+1], band[s:e+1], color=line_color, lw=1)
                 else:
-                    ax1.plot(x_dist[s], band[s], 'k.', markersize=2)
+                    ax1.plot(x_dist[s], band[s], '.', color=line_color, markersize=2)
         title = 'Band Structure'
     else:
 
@@ -238,14 +245,14 @@ def plot_band(
             else:
                 imax = np.argmax(sums)
                 color = cmap(imax)
-
+            
             # Plot colored band
             for (s,e) in seg_ranges:
                 if e > s:
                     ax1.plot(x_dist[s:e+1], band_energies[b, s:e+1], color=color, lw=1.5)
                 else:
                     ax1.plot(x_dist[s], band_energies[b, s], '.', color=color, markersize=3)
-
+        
         # Legend for colored bands
         for i, key in enumerate(unique_keys):
             ax1.plot([], [], c=cmap(i), label=key, lw=2)
@@ -271,7 +278,7 @@ def plot_band(
         show_grid=show_grid,
     )
     ax1.autoscale(enable=True, axis='x', tight=True)
-
+    
     # Add Fermi line to Band Plot
     if fermi_level is not None:
         y0 = 0.0 if shift_fermi else fermi_level
@@ -280,21 +287,22 @@ def plot_band(
     # --- TOTAL DOS PLOTTING ---
     if plot_total_dos:
         # Side-by-side means Energy on Y, DOS on X (Standard Vertical Layout)
-        ax2.plot(DOS, E_dos, 'k-', lw=1, label='Total DOS')
+        dos_color = colormap_colors(cmap_name, 1)[0]
+        ax2.plot(DOS, E_dos, color=dos_color, lw=1, label='Total DOS')
         ax2.set_xlabel('DOS')
         ax2.set_title("Total DOS")
-
+        
         # Share Y axis with band plot
         if y_range:
             ax2.set_ylim(y_range)
         if x_range:
             ax2.set_xlim(x_range)
-
+            
         # Draw Fermi Line
         if fermi_level is not None:
              y0 = 0.0 if shift_fermi else fermi_level
              # Show original Fermi value in legend, consistent with plot_dos
-             label_f = f'Fermi = {fermi_level:.2f} eV'
+             label_f = f'Fermi = {fermi_level:.2f} eV' 
              ax2.axhline(y0, color='r', ls='--', lw=1.2, label=label_f)
         else:
              # Just a zero line if no fermi info
@@ -304,10 +312,10 @@ def plot_band(
             ax2.grid(True, ls='--', alpha=0.4)
         else:
             ax2.grid(False)
-
+        
         # Hide Y-axis labels on DOS plot since they are shared
         plt.setp(ax2.get_yticklabels(), visible=False)
-
+        
         if fermi_level is not None:
              apply_legend(
                  ax2,

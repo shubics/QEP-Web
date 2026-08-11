@@ -356,7 +356,7 @@ def plot_fatbands(
         orbs = [o for (_, o) in labels]
         ch_labels = [f"{atom_name_fn(a)}-{o}" for (a, o) in labels]
 
-
+        
 
         if mode == 'layer':
             # 1. Unique atom names from labels (now like 'W1', 'Mo2', 'S3' ...)
@@ -554,15 +554,7 @@ def plot_fatbands(
 
         # ------ PLOTTING PART (shared for all line/layer modes) ------
 
-        # ``tab10`` is categorical and creates abrupt jumps on a continuous
-        # layer-fraction scale. Keep API compatibility while choosing a clear
-        # continuous default for layer plots.
-        effective_cmap = (
-            'coolwarm'
-            if mode == 'layer' and cmap_name == 'tab10'
-            else cmap_name
-        )
-        cmap = plt.get_cmap(effective_cmap)
+        cmap = plt.get_cmap(cmap_name)
 
         norm = plt.Normalize(0.0, 1.0)
 
